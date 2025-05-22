@@ -1,0 +1,28 @@
+---
+- name: configure NetworkManager
+  hosts: serverb.lab.example.com,serverc.lab.example.com
+  become: true
+  gather_facts: true
+
+  tasks:
+    
+    - name: find network interface
+      loop: "{{ ansible_facts['interfaces'] }}"
+      when:
+        - ansible_facts[item]['macaddress'] is defined
+        - ansible_facts[item]['macaddress'] == macaddress
+      set_fact:
+        interface: "{{ item }}"
+
+    - name: import network role
+      vars:
+        network_connections:
+          - name: lab_conn
+            interface_name: "{{ interface }}"
+            state: up
+            type: ethernet
+            autoconnect: true
+            ip:
+              address: "{{ ipaddress }}"
+      include_role:
+        name: redhat.rhel_system_roles.network
