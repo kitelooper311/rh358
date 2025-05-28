@@ -1,0 +1,5 @@
+[caching_dns]
+servera.lab.example.com
+
+[primary_dns]
+serverb.lab.example.com
