@@ -1,0 +1,70 @@
+---
+- name: Configure primary nameserver
+  hosts:
+  remote_user: devops
+  become: true
+
+  tasks:
+    - name: Install BIND9
+      ansible.builtin.dnf:
+        name:
+        state:
+
+    - name: Copy primary config file
+      ansible.builtin.copy:
+        src:
+        dest:
+        owner:
+        group:
+        mode:
+      notify:
+        - reload_named
+
+    - name: Copy forward zone file to primary
+      ansible.builtin.copy:
+        src:
+        dest:
+        owner:
+        group:
+        mode:
+      notify:
+        - reload_named
+
+    - name: Copy reverse zone file to primary
+      ansible.builtin.copy:
+        src:
+        dest:
+        owner:
+        group:
+        mode:
+      notify:
+        - reload_named
+
+    - name: Copy backend config file (for zones)
+      ansible.builtin.copy:
+        src:
+        dest:
+        owner:
+        group:
+        mode:
+      notify:
+        - reload_named
+
+    - name: Allow dns service on firewall
+      ansible.posix.firewalld:
+        service:
+        state:
+        immediate:
+        permanent:
+
+    - name: Ensure named is running and enabled
+      ansible.builtin.service:
+        name:
+        state:
+        enabled:
+
+  handlers:
+    - name: reload_named
+      ansible.builtin.service:
+        name:
+        state: reloaded
