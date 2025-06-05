@@ -1,0 +1,54 @@
+---
+- name: Deploy a DHCPv6 server
+  hosts: servera.lab.example.com
+  become: true
+  vars:
+    network_connections:
+      - name: lab-conn
+        type: ethernet
+        mac: "{{ mac_if2 }}"
+        state: up
+        ip:
+          address:
+            - "10.1.1.1/24"
+            - "fde2:6494:1e09:2::a/64"
+        autoconnect: true
+    # Define the variables expected by the templates/dhcpd6.conf.j2 template
+    IPv6_prefix: fde2:6494:1e09:2::/64
+    IPv6_start: fde2:6494:1e09:2::20
+    IPv6_end: fde2:6494:1e09:2::60
+    IPv6_ns: fde2:6494:1e09:2::d
+
+  roles:
+    - name: redhat.rhel_system_roles.network
+
+  tasks:
+    - name: the dhcp-server package is installed
+      dnf:
+        name: dhcp-server
+        state: present
+
+    - name: the DHCPv6 configuration file is deployed
+      template:
+        src: templates/dhcpd6.conf.j2
+        dest: /etc/dhcp/dhcpd6.conf
+      notify: reload dhcpd6
+
+    - name: the dhcpd6 service is started and enabled
+      service:
+        name: dhcpd6
+        state: started
+        enabled: true
+
+    - name: the dhcpv6 firewall service is opened
+      ansible.posix.firewalld:
+        service: dhcpv6
+        state: enabled
+        immediate: true
+        permanent: true
+
+  handlers:
+    - name: reload dhcpd6
+      service:
+        name: dhcpd6
+        state: restarted

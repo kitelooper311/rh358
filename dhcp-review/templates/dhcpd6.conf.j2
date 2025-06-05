@@ -1,0 +1,9 @@
+authoritative;
+
+subnet6 {{ IPv6_prefix }} {
+  range6 {{ IPv6_start }} {{ IPv6_end }};
+  option dhcp6.name-servers {{ IPv6_ns }};
+  option dhcp6.domain-search "backend.lab.example.com";
+  default-lease-time 600;
+  max-lease-time 7200;
+}
