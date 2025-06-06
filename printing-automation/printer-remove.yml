@@ -1,0 +1,19 @@
+---
+- name: Remove a print queue
+  hosts: clients
+  gather_facts: false
+  become: true
+  vars:
+    queue_name: my-local
+  tasks:
+    - name: Confirm the print queue exists
+      ansible.builtin.command: >
+        lpstat -p {{ queue_name }}
+      register: cmdout
+      ignore_errors: true
+      changed_when: false
+
+    - name: Remove the print queue
+      ansible.builtin.command: >
+        lpadmin -x {{ queue_name }}
+      when: cmdout['rc'] == 0

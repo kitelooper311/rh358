@@ -1,0 +1,56 @@
+---
+- name: Install CUPS and create a print queue
+  hosts: serverb.lab.example.com
+  gather_facts: false
+  vars:
+    print_packages:
+      - cups
+    print_services:
+      - avahi-daemon
+      - cups
+    print_firewall_services:
+      - mdns
+    queue_name: lab-local
+    dev_uri: ipp://serverc.lab.example.com:631/printers/lab-remote
+
+  tasks:
+    - name: Install the CUPS software
+      ansible.builtin.dnf:
+        name: "{{ print_packages }}"
+        state: present
+
+    - name: Enable and start CUPS
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+        masked: false
+      loop: "{{ print_services }}"
+
+    - name: Open firewall access
+      ansible.posix.firewalld:
+        service: "{{ item }}"
+        state: enabled
+        permanent: true
+        immediate: true
+      loop: "{{ print_firewall_services }}"
+
+    - name: Check if print queue already exists
+      ansible.builtin.command: lpstat -p {{ queue_name }}
+      register: cmdout
+      ignore_errors: true
+      changed_when: false
+
+    - name: Create the print queue
+      ansible.builtin.command:
+        cmd: lpadmin -p {{ queue_name }} -v {{ dev_uri }} -m everywhere -E
+      when: cmdout['rc'] != 0
+
+    - name: Check default printer
+      ansible.builtin.command: lpstat -d
+      register: curr_dest
+      changed_when: false
+
+    - name: Make the new print queue the default
+      ansible.builtin.command: lpadmin -d {{ queue_name }}
+      when: curr_dest['stdout'] | regex_replace('^.*:.') != queue_name

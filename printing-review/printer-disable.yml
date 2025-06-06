@@ -1,0 +1,16 @@
+---
+- name: Configure a print queue to stop printing
+  hosts: serverb.lab.example.com
+  gather_facts: false
+  vars:
+    queue_name: lab-local
+  tasks:
+    - name: Confirm the print queue exists
+      ansible.builtin.command: lpstat -p {{ queue_name }}
+      register: cmdout
+      ignore_errors: true
+      changed_when: false
+
+    - name: Disable the print queue
+      ansible.builtin.command: cupsdisable {{ queue_name }}
+      when: cmdout['rc'] == 0

@@ -1,0 +1,58 @@
+---
+- name: Install CUPS and create a print queue
+  hosts: clients
+  gather_facts: false
+  become: true
+  vars:
+    print_packages:
+      - cups
+    print_services:
+      - avahi-daemon
+      - cups
+    print_firewall_services:
+      - mdns
+    queue_name: my-local
+    device_uri: ipp://serverc.lab.example.com:631/printers/rht-remote
+  tasks:
+    - name: Install the print packages
+      ansible.builtin.dnf:
+        name: "{{ print_packages }}"
+        state: present
+
+    - name: Enable and start the print services
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      loop: "{{ print_services }}"
+
+    - name: Open the mDNS firewall service
+      ansible.posix.firewalld:
+        service: "{{ item }}"
+        state: enabled
+        permanent: true
+        immediate: true
+      loop: "{{ print_firewall_services }}"
+
+    - name: Check if print queue already exists
+      ansible.builtin.command: >
+        lpstat -p {{ queue_name }}
+      register: cmdout
+      ignore_errors: true
+      changed_when: false
+
+    - name: Create the print queue
+      ansible.builtin.command: >
+        lpadmin -p {{ queue_name }} -v {{ device_uri }} -m everywhere -E
+      when: cmdout['rc'] != 0
+
+    - name: Check default print queue
+      ansible.builtin.command: >
+        lpstat -d
+      register: curr_dest
+      changed_when: false
+
+    - name: Make the new print queue the default
+      ansible.builtin.command: >
+        lpadmin -d {{ queue_name }}
+      when: curr_dest['stdout'] | regex_replace('^.*:.') != queue_name

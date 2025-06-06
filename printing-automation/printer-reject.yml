@@ -1,0 +1,19 @@
+---
+- name: Configure a print queue to reject jobs
+  hosts: clients
+  gather_facts: false
+  become: true
+  vars:
+    queue_name: my-local
+  tasks:
+    - name: Confirm the print queue exists
+      ansible.builtin.command: >
+        lpstat -p {{ queue_name }}
+      register: cmdout
+      ignore_errors: true
+      changed_when: false
+
+    - name: Tune the print queue to reject jobs
+      ansible.builtin.command: >
+        cupsreject {{ queue_name }}
+      when: cmdout['rc'] == 0
