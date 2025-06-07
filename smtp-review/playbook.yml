@@ -1,0 +1,15 @@
+---
+- name: Configure Null Client Email Service
+  become: true
+  hosts: serverb.lab.example.com
+
+  vars:
+    postfix_conf:
+      relayhost: "[smtp.lab.example.com]"
+      inet_interfaces: "loopback-only"
+      mynetworks: "127.0.0.0/8 [::1]/128"
+      myorigin: "lab.example.com"
+      mydestination: ""
+
+  roles:
+    - redhat.rhel_system_roles.postfix
