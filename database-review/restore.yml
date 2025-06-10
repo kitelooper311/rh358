@@ -1,0 +1,27 @@
+---
+- name: Restore legacy database if not present
+  hosts: db_servers
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Make sure legacy database exists
+      community.mysql.mysql_db:
+        name: legacy
+        state: present
+      register: legacy_present
+
+    - name: Copy database backup file to host if not present
+      ansible.builtin.copy:
+        src: files/legacy.sql
+        dest: /srv
+        owner: root
+        group: root
+        mode: "0644"
+      when: legacy_present['changed'] is true
+
+    - name: Restore legacy backup data
+      community.mysql.mysql_db:
+        name: legacy
+        state: import
+        target: /srv/legacy.sql
+      when: legacy_present['changed'] is true

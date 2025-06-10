@@ -1,0 +1,5 @@
+[db_servers]
+servera.lab.example.com
+
+[db_clients]
+serverb.lab.example.com

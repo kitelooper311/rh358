@@ -1,0 +1,11 @@
+---
+- name: Database backup
+  hosts: db_servers
+  become: true
+
+  tasks:
+    - name: Backup inventory database
+      community.mysql.mysql_db:
+        name: inventory
+        state: dump
+        target: /home/student/inventory.dump

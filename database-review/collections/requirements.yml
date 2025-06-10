@@ -1,0 +1,8 @@
+---
+collections:
+  - name: community.general
+    source: https://hub.lab.example.com/api/galaxy/content/community/
+    version: 9.4.0
+  - name: community.mysql
+    source: https://hub.lab.example.com/api/galaxy/content/community/
+    version: 3.12.0

@@ -1,0 +1,30 @@
+---
+- name: Securing MariaDB
+  hosts: db_servers
+  become: true
+  vars_files:
+    - files/vault.yml
+
+  tasks:
+    - name: Authentication credentials copied to root home directory
+      ansible.builtin.template:
+        src: files/my.cnf.j2
+        dest: /root/.my.cnf
+
+    - name: Assign password to MariaDB root user
+      community.mysql.mysql_user:
+        name: root
+        host_all: true
+        update_password: always
+        password: "{{ pw }}"
+
+    - name: Remove anonymous user accounts
+      community.mysql.mysql_user:
+        name: ''
+        host_all: true
+        state: absent
+
+    - name: Remove test database
+      community.mysql.mysql_db:
+        name: test
+        state: absent

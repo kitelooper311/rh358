@@ -1,0 +1,25 @@
+---
+- name: Import database
+  hosts: db_servers
+  become: true
+
+  tasks:
+    - name: Make sure inventory database exists
+      community.mysql.mysql_db:
+        name: inventory
+        state: present
+      register: inventory_present
+
+    - name: Is inventory database backup present?
+      ansible.builtin.stat:
+        path: /home/student/inventory.dump
+      register: inventory_bkup
+
+    - name: Import inventory backup data
+      community.mysql.mysql_db:
+        name: inventory
+        state: import
+        target: /home/student/inventory.dump
+      when:
+        - inventory_present['changed'] is false
+        - inventory_bkup['stat']['exists'] is true

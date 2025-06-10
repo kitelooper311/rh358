@@ -1,0 +1,19 @@
+---
+- name: Configure MariaDB users
+  hosts: db_servers
+  become: true
+  gather_facts: false
+  vars_files:
+    - files/users.yml
+  tasks:
+    - name: Create users and set password if not present
+      community.mysql.mysql_user:
+        name: "{{ item['name'] }}"
+        host: "{{ item['host'] }}"
+        password: "{{ item['password'] }}"
+        update_password: always
+        priv: "{{ item['priv'] }}"
+        state: present
+        column_case_sensitive: false
+      loop: "{{ mysql_users }}"
+      no_log: true

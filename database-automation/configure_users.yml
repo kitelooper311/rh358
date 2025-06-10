@@ -1,0 +1,34 @@
+---
+- name: Configure users in MariaDB
+  hosts: db_servers
+  become: true
+  vars_files:
+    - files/vault.yml
+
+  tasks:
+    - name: Create users and set password if not present
+      community.mysql.mysql_user:
+        name: "{{ item['name']  }}"
+        update_password: on_create
+        password: "{{ item['password'] }}"
+        state: present
+      loop: "{{ mysql_user_passwords }}"
+      no_log: true
+
+    - name: Configure users in MariaDB inventory
+      community.mysql.mysql_user:
+        name: "{{ item['name'] }}"
+        host: "{{ item['host'] }}"
+        priv: "{{ item['priv'] }}"
+        state: "{{ item['state'] }}"
+      loop: "{{ mysql_users }}"
+
+    - name: Update users with password for all host
+      community.mysql.mysql_user:
+        name: "{{ item['name'] }}"
+        host_all: true
+        update_password: always
+        password: "{{ item['password'] }}"
+        state: present
+      loop: "{{ mysql_user_passwords }}"
+      no_log: true

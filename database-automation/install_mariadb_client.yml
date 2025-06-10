@@ -1,0 +1,10 @@
+---
+- name: Install MariaDB client
+  hosts: db_clients
+  become: true
+
+  tasks:
+    - name: Install MariaDB client package
+      ansible.builtin.dnf:
+        name: mariadb
+        state: present

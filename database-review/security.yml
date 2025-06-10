@@ -1,0 +1,36 @@
+---
+- name: Securing MariaDB
+  hosts: db_servers
+  become: true
+  gather_facts: false
+  vars_files:
+    - files/users.yml
+  tasks:
+    - name: Configure authentication credentials
+      ansible.builtin.template:
+        src: files/my.cnf.j2
+        dest: /root/.my.cnf
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Assign password to MariaDB root user
+      community.mysql.mysql_user:
+        name: root
+        host_all: true
+        update_password: always
+        password: "{{ mysql_root_pw }}"
+        column_case_sensitive: false
+        login_unix_socket: /var/lib/mysql/mysql.sock
+
+    - name: Remove anonymous user accounts
+      community.mysql.mysql_user:
+        name: ''
+        host_all: true
+        state: absent
+        column_case_sensitive: false
+
+    - name: Remove test database
+      community.mysql.mysql_db:
+        name: test
+        state: absent
