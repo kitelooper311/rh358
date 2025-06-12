@@ -1,0 +1,72 @@
+---
+- name: Apache HTTP Server web server deployment
+  hosts: webserver
+  become: true
+
+  roles:
+    - name: redhat.rhel_system_roles.selinux
+      selinux_fcontexts:
+        - target: '/srv/serverc(/.*)?'
+          setype: 'httpd_sys_content_t'
+          state: present
+        - target: '/srv/virtual(/.*)?'
+          setype: 'httpd_sys_content_t'
+          state: present
+
+  tasks:
+    - name: Latest software installed for Apache HTTPD
+      ansible.builtin.dnf:
+        name: "{{ item }}"
+        state: latest
+      loop:
+        - httpd
+        - mod_ssl
+      notify: Restart httpd
+
+    - name: Apply modified ssl.conf file
+      ansible.builtin.template:
+        src: "ssl.conf.j2"
+        dest: "/etc/httpd/conf.d/ssl.conf"
+      notify: Reload httpd
+
+    - name: Web content is in place
+      ansible.builtin.import_tasks: deploy_content.yml
+
+    - name: Serverc Virtual hosts are configured
+      ansible.builtin.template:
+        src: "httpd.conf.j2"
+        dest: "/etc/httpd/conf.d/httpd.conf"
+      notify: Reload httpd
+
+    - name: Virtual hosts are configured
+      ansible.builtin.template:
+        src: "hvirtual.conf.j2"
+        dest: "/etc/httpd/conf.d/virtual.conf"
+      notify: Reload httpd
+
+    - name: Web server is started and enabled
+      ansible.builtin.service:
+        name: httpd
+        state: started
+        enabled: true
+
+    - name: Firewall ports are open
+      ansible.posix.firewalld:
+        service: "{{ item }}"
+        permanent: true
+        immediate: true
+        state: enabled
+      loop:
+        - http
+        - https
+
+  handlers:
+    - name: Reload httpd
+      ansible.builtin.service:
+        name: httpd
+        state: reloaded
+
+    - name: Restart httpd
+      ansible.builtin.service:
+        name: httpd
+        state: restarted

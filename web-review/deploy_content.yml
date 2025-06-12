@@ -1,0 +1,67 @@
+---
+- name: Document root exists for serverc web site
+  ansible.builtin.file:
+    path: "/srv/serverc"
+    state: directory
+    owner: root
+    mode: '0755'
+
+- name: Document root exists for virtual web site
+  ansible.builtin.file:
+    path: "/srv/virtual"
+    state: directory
+    owner: root
+    mode: '0755'
+
+- name: Index page for serverc is correct
+  ansible.builtin.template:
+    src: "templates/serverc_index.html.j2"
+    dest: "/srv/serverc/index.html"
+
+- name: Index page for virtual is correct
+  ansible.builtin.template:
+    src: "templates/virtual_index.html.j2"
+    dest: "/srv/virtual/index.html"
+
+- name: Correct SELinux file context is on serverc web content
+  ansible.builtin.file:
+    path: /srv/serverc
+    state: directory
+    recurse: true
+    follow: false
+    setype: _default
+
+- name: Correct SELinux file context is on virtual web content
+  ansible.builtin.file:
+    path: /srv/virtual
+    state: directory
+    recurse: true
+    follow: false
+    setype: _default
+
+- name: Serverc host TLS certs in place
+  ansible.builtin.copy:
+    src: "files/serverc.lab.example.com.crt"
+    dest: "/etc/pki/tls/certs"
+
+- name: Serverc host TLS private keys in place
+  ansible.builtin.copy:
+    src: "files/serverc.lab.example.com.key"
+    dest: "/etc/pki/tls/private"
+    mode: '0600'
+
+- name: Virtual host TLS certs in place
+  ansible.builtin.copy:
+    src: "files/virtual.lab.example.com.crt"
+    dest: "/etc/pki/tls/certs"
+
+- name: Virtual host TLS private keys in place
+  ansible.builtin.copy:
+    src: "files/virtual.lab.example.com.key"
+    dest: "/etc/pki/tls/private"
+    mode: '0600'
+
+- name: example.com CA cert in place
+  ansible.builtin.copy:
+    src: "files/ca-cert.crt"
+    dest: "/etc/pki/tls/certs/ca-cert.crt"
