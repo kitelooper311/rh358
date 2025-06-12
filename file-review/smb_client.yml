@@ -1,0 +1,39 @@
+---
+- name: Access an SMB share
+  hosts: servera.lab.example.com
+  become: true
+  gather_facts: false
+  vars_files:
+    - smb_vars.yml
+
+  tasks:
+    - name: Install software to mount SMB shares
+      ansible.builtin.dnf:
+        name: cifs-utils
+        state: present
+
+    - name: Create a SMB credential file
+      vars:
+        samba_user: sambamount
+        samba_password: >-
+          {{ samba_users |
+          selectattr('name', '==', samba_user) |
+          map(attribute='password') |
+          first }}
+      ansible.builtin.copy:
+        content: |
+          username={{ samba_user }}
+          password={{ samba_password }}
+        dest: /etc/samba/creds.txt
+        owner: root
+        group: root
+        mode: "0600"
+      no_log: true
+
+    - name: Mount the SMB share
+      ansible.posix.mount:
+        path: /devs_data
+        src: //serverd.lab.example.com/devdata
+        opts: credentials=/etc/samba/creds.txt,multiuser,seal
+        state: mounted
+        fstype: cifs

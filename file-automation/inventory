@@ -1,0 +1,8 @@
+[nfs]
+serverd.lab.example.com
+
+[smb]
+serverd.lab.example.com
+
+[clients]
+servera.lab.example.com

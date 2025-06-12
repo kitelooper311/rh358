@@ -1,0 +1,68 @@
+---
+- name: Deploy Samba and share a directory
+  hosts: serverd.lab.example.com
+  become: true
+  gather_facts: false
+  vars_files:
+    - smb_vars.yml
+
+  tasks:
+    - name: Install Samba server software
+      ansible.builtin.dnf:
+        name: "{{ samba_pkg }}"
+        state: present
+
+    - name: Create Linux users
+      ansible.builtin.user:
+        name: "{{ item['name'] }}"
+        shell: "{{ item['shell'] }}"
+        system: "{{ item['system'] }}"
+        groups: "{{ item['groups'] }}"
+      loop: "{{ samba_users }}"
+      no_log: true
+
+    - name: Add Linux users to Samba
+      ansible.builtin.command: smbpasswd -s -a {{ item['name'] }}
+      args:
+        stdin: |
+          {{ item['password'] }}
+          {{ item['password'] }}
+      loop: "{{ samba_users }}"
+      no_log: true
+
+    - name: Create the directory to share
+      ansible.builtin.file:
+        path: /srv/developers
+        owner: sambamount
+        group: developers
+        mode: "2770"
+        state: directory
+        setype: samba_share_t
+
+    - name: Configure SMB shares
+      ansible.builtin.template:
+        src: templates/smb.conf.j2
+        dest: /etc/samba/smb.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload smb
+
+    - name: Start and enable the Samba service
+      ansible.builtin.service:
+        name: smb
+        state: started
+        enabled: true
+
+    - name: Open firewall access for SMB
+      ansible.posix.firewalld:
+        service: samba
+        state: enabled
+        immediate: true
+        permanent: true
+
+  handlers:
+    - name: Reload smb
+      ansible.builtin.service:
+        name: smb
+        state: reloaded

@@ -1,0 +1,22 @@
+---
+- name: Access an NFS export
+  hosts: clients
+  become: true
+  gather_facts: false
+  vars:
+    nfs_pkg: nfs-utils
+    shared_dir: /nfsshare
+    mount_point: /datanfs
+
+  tasks:
+    - name: Install NFS software
+      ansible.builtin.dnf:
+        name: "{{ nfs_pkg }}"
+        state: present
+
+    - name: Mount the NFS export
+      ansible.posix.mount:
+        path: "{{ mount_point }}"
+        src: serverd.lab.example.com:{{ shared_dir }}
+        state: mounted
+        fstype: nfs

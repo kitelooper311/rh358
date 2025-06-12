@@ -1,0 +1,52 @@
+---
+- name: Install NFS server
+  hosts: nfs
+  become: true
+  gather_facts: false
+  vars:
+    nfs_pkg: nfs-utils
+    nfs_srv: nfs-server
+    firewall_srv: nfs
+    shared_dir: /nfsshare
+
+  tasks:
+    - name: Install NFS software
+      ansible.builtin.dnf:
+        name: "{{ nfs_pkg }}"
+        state: present
+
+    - name: Create shared directory
+      ansible.builtin.file:
+        path: "{{ shared_dir }}"
+        owner: student
+        group: root
+        mode: '0755'
+        state: directory
+
+    - name: Export the shared directory
+      ansible.builtin.template:
+        src: templates/share.exports.j2
+        dest: /etc/exports.d/share.exports
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload service
+
+    - name: Ensure NFS server service is enabled and running
+      ansible.builtin.service:
+        name: "{{ nfs_srv }}"
+        state: started
+        enabled: true
+
+    - name: Ensure firewall allows NFS server service
+      ansible.posix.firewalld:
+        service: "{{ firewall_srv }}"
+        state: enabled
+        permanent: true
+        immediate: true
+
+  handlers:
+    - name: Reload service
+      ansible.builtin.service:
+        name: "{{ nfs_srv }}"
+        state: restarted

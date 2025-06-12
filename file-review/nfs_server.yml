@@ -1,0 +1,50 @@
+---
+- name: Share a directory with NFS
+  hosts: serverd.lab.example.com
+  become: true
+  gather_facts: false
+  vars:
+    shared_dir: /srv/operators
+
+  tasks:
+    - name: Install NFS server software
+      ansible.builtin.dnf:
+        name: nfs-utils
+        state: present
+
+    - name: Create the directory to share
+      ansible.builtin.file:
+        path: "{{ shared_dir }}"
+        owner: root
+        group: operators
+        mode: "2770"
+        state: directory
+
+    - name: Share the directory
+      ansible.builtin.copy:
+        content: |
+          {{ shared_dir }} servera.lab.example.com(rw)
+        dest: /etc/exports.d/share.exports
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload exports
+
+    - name: Start and enable NFS
+      ansible.builtin.service:
+        name: nfs-server
+        state: started
+        enabled: true
+
+    - name: Open firewall access for NFS
+      ansible.posix.firewalld:
+        service: nfs
+        state: enabled
+        immediate: true
+        permanent: true
+
+  handlers:
+    - name: Reload exports
+      ansible.builtin.service:
+        name: nfs-server
+        state: reloaded

@@ -1,0 +1,26 @@
+---
+- name: Access an NFS share
+  hosts: servera.lab.example.com
+  become: true
+  gather_facts: false
+  vars:
+    shared_dir: /srv/operators
+    mount_point: /operators_data
+
+  tasks:
+    - name: Persistently mount the NFS share
+      ansible.posix.mount:
+        path: "{{ mount_point }}"
+        src: serverd.lab.example.com:{{ shared_dir }}
+        state: mounted
+        fstype: nfs
+
+    - name: Test NFS share access as operator1
+      become: true
+      become_user: operator1
+      ansible.builtin.copy:
+        content: |
+          Hello World
+        dest: "{{ mount_point }}/text.txt"
+        owner: operator1
+        mode: "0644"
