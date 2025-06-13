@@ -1,0 +1,18 @@
+---
+- name: Ensure /data is not mounted
+  hosts: servera.lab.example.com
+  become: true
+  tasks:
+    - name: The new device is not mounted
+      ansible.posix.mount:
+        path: /data
+        state: absent
+
+    - name: The iSCSI target is disconnected
+      community.general.open_iscsi:
+        portal: 172.25.250.13
+        port: 3260
+        target: iqn.2025-01.com.example:serverd
+        discover: false
+        login: false
+        auto_node_startup: false

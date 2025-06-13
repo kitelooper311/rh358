@@ -1,0 +1,58 @@
+---
+- name: Ensure /iscsidisk is mounted from serverd iSCSI target
+  hosts: servera.lab.example.com
+  become: true
+  tasks:
+    - name: The iscsi-initiator-utils package is installed
+      ansible.builtin.dnf:
+        name: iscsi-initiator-utils
+        state: present
+
+    - name: The IQN is set for the initiator
+      ansible.builtin.copy:
+        dest: /etc/iscsi/initiatorname.iscsi
+        content: >
+          InitiatorName=iqn.2025-01.com.example:servera
+        mode: "0644"
+        owner: root
+        group: root
+      notify: Restart iscsid
+
+    # Forces the handler to run so that the iscsid service is restarted
+    # and is aware of the new initiator IQN
+    - name: Restart iscsid if necessary
+      ansible.builtin.meta: flush_handlers
+
+    - name: The iSCSI target is discovered and available
+      community.general.open_iscsi:
+        portal: 172.25.250.13
+        port: 3260
+        target: iqn.2025-01.com.example:store1
+        discover: true
+        login: true
+      register: target
+
+    - name: Display the discovered devices
+      ansible.builtin.debug:
+        msg: >-
+          The new device is: {{ target['devicenodes'][0] }}
+
+    - name: The new device is formatted and mounted under /iscsidisk
+      ansible.builtin.include_role:
+        name: redhat.rhel_system_roles.storage
+      vars:
+        storage_volumes:
+          - name: devdata
+            state: present
+            type: disk
+            disks:
+              - "{{ target['devicenodes'][0] }}"
+            mount_point: /iscsidisk
+            fs_type: ext4
+            mount_options: _netdev
+
+  handlers:
+    - name: Restart iscsid
+      ansible.builtin.service:
+        name: iscsid
+        state: restarted
